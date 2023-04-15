@@ -275,17 +275,6 @@ def parse_sql_query(input):
     return dict 
 
 
-query_1_dict = parse_sql_query('C:/Users/user/Desktop/CZ4031/Project 2/2.sql')
-
-print('Final Check and Result:')
-print('Dictionary for Query 1 is: \n{}'.format(query_1_dict))
-
-
-
-
-
-
-
 
 
 
