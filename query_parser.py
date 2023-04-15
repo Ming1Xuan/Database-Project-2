@@ -10,7 +10,32 @@ def parse_sql_query(input):
     #with open(file_path, 'r') as file:
     #    sql_query = file.read()
 
-    #sql_query = "select returnflag, linestatus, sum(linequantity) as sumqty, count(*) as count_order from table where blah1 AND blah4 AND blah5 group by blah 2 order by blah 3"
+    #sql_query = "select returnflag, linestatus, sum(linequantity) as sumqty, count(*) as count_order from table where blah1 and blah4 and blah5 group by blah 2 order by blah 3"
+
+    #sql_query = "select blah1, blah2 from blah3, blah4 where blah5 and blah6 and blah7 group by blah8, blah9 having blah10 order by blah11 limit blah12"
+
+
+    # sql_query = "select\
+    #     blah1,\
+    #     blah2\
+    # from\
+    #     blah3,\
+    #     blah4\
+    # where\
+    #     blah5\
+    #     and blah6\
+    #     and blah7\
+    # group by\
+    #     blah8,\
+    #     blah9\
+    # having\
+    #     blah10\
+    # order by\
+    #     blah11\
+    # limit\
+    #     blah12\
+    # "
+
 
     # 1.sql-------------------------------------------------------------------------------------------------------------------------------------
     # sql_query = "select\
@@ -137,22 +162,53 @@ def parse_sql_query(input):
     #     s_name;\
     # "
 
+    # Order of SQL clauses
+    # select -- only this
+    # from   -- and this are mandatory clauses
+    # where
+    # group by
+    # having  -- not in yet
+    # order by
+    # limit  -- not in yet
 
 
+    # Assumptions and preconditions
+    # 1. Queries written with accurate clause order, ....
+    # 2. Queries only use these common clauses ...
+    # 3. Clauses are all written in lower cases
 
     # Define regular expressions to match each clause
+    # select_pattern = re.compile(r'select (.+?) from', re.DOTALL)
+    # from_pattern = re.compile(r'from (.+?) (?: where|group by|order by|$)', re.DOTALL)
+    # where_pattern = re.compile(r'where (.+?) (?: group by|order by|$)', re.DOTALL)
+    # group_by_pattern = re.compile(r'group by (.+?) (?: order by|$)', re.DOTALL)
+    # order_by_pattern = re.compile(r'order by (.+?) $', re.DOTALL)
+    
+
+
     select_pattern = re.compile(r'select (.+?) from', re.DOTALL)
-    from_pattern = re.compile(r'from (.+?) where', re.DOTALL)
-    where_pattern = re.compile(r'where (.+?) (?: group by|order by|$)', re.DOTALL)
-    group_by_pattern = re.compile(r'group by (.+?) (?: order by|$)', re.DOTALL)
-    order_by_pattern = re.compile(r'order by (.+?) $', re.DOTALL)
+    from_pattern = re.compile(r'from (.+?) (?: where|group by|having|order by|limit|$)', re.DOTALL)
+    where_pattern = re.compile(r'where (.+?) (?: group by|having|order by|limit|$)', re.DOTALL)
+    group_by_pattern = re.compile(r'group by (.+?) (?: having|order by|limit|$)', re.DOTALL)
+    having_pattern = re.compile(r'having (.+?) (?: order by|limit|$)', re.DOTALL)
+    order_by_pattern = re.compile(r'order by (.+?) (?: limit|$)', re.DOTALL)
+    limit_pattern = re.compile(r'limit (.+?) $', re.DOTALL)
+
+    print("CHECK 1: {}".format(from_pattern))
+    print("CHECK 1: {}".format(where_pattern))
+
 
     # Find the matches for each clause
     select_match = select_pattern.search(sql_query)
     from_match = from_pattern.search(sql_query)
     where_match = where_pattern.search(sql_query)
     group_by_match = group_by_pattern.search(sql_query)
+    having_match = having_pattern.search(sql_query)
     order_by_match = order_by_pattern.search(sql_query)
+    limit_match = limit_pattern.search(sql_query)
+
+    print("CHECK 2: {}".format(from_match))
+    print("CHECK 2: {}".format(where_match))
 
     # Initialise dictionary for the query
     dict = {}
@@ -190,6 +246,15 @@ def parse_sql_query(input):
         
         dict['GROUP BY'] = group_by_clause
 
+    if having_match:
+        having_clause = having_match.group(1).strip().split(',')
+
+        for i in range(len(having_clause)):
+            having_clause[i] = having_clause[i].strip()
+        
+        dict['HAVING'] = having_clause
+    
+    
     if order_by_match:
         order_by_clause = order_by_match.group(1).strip().split(',')
 
@@ -197,9 +262,30 @@ def parse_sql_query(input):
             order_by_clause[i] = order_by_clause[i].strip()
 
         dict['ORDER BY'] = order_by_clause
+    
+    if limit_match:
+        limit_clause = limit_match.group(1).strip().split(',')
+
+        for i in range(len(limit_clause)):
+            limit_clause[i] = limit_clause[i].strip()
+
+        dict['LIMIT'] = limit_clause
 
 
     return dict 
+
+
+query_1_dict = parse_sql_query('C:/Users/user/Desktop/CZ4031/Project 2/2.sql')
+
+print('Final Check and Result:')
+print('Dictionary for Query 1 is: \n{}'.format(query_1_dict))
+
+
+
+
+
+
+
 
 
 
