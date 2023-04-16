@@ -4,7 +4,7 @@ import re
 # This function parses a query and returns a dictionary with each of the clauses and its predicates as a key-value pair
 def parse_sql_query(input):
 
-    sql_query = input
+    sql_query = input.lower()
 
     # Open the file and read its contents
     #with open(file_path, 'r') as file:
@@ -162,41 +162,15 @@ def parse_sql_query(input):
     #     s_name;\
     # "
 
-    # Order of SQL clauses
-    # select -- only this
-    # from   -- and this are mandatory clauses
-    # where
-    # group by
-    # having  -- not in yet
-    # order by
-    # limit  -- not in yet
-
-
-    # Assumptions and preconditions
-    # 1. Queries written with accurate clause order, ....
-    # 2. Queries only use these common clauses ...
-    # 3. Clauses are all written in lower cases
 
     # Define regular expressions to match each clause
-    # select_pattern = re.compile(r'select (.+?) from', re.DOTALL)
-    # from_pattern = re.compile(r'from (.+?) (?: where|group by|order by|$)', re.DOTALL)
-    # where_pattern = re.compile(r'where (.+?) (?: group by|order by|$)', re.DOTALL)
-    # group_by_pattern = re.compile(r'group by (.+?) (?: order by|$)', re.DOTALL)
-    # order_by_pattern = re.compile(r'order by (.+?) $', re.DOTALL)
-    
-
-
     select_pattern = re.compile(r'select (.+?) from', re.DOTALL)
-    from_pattern = re.compile(r'from (.+?) (?: where|group by|having|order by|limit|$)', re.DOTALL)
-    where_pattern = re.compile(r'where (.+?) (?: group by|having|order by|limit|$)', re.DOTALL)
-    group_by_pattern = re.compile(r'group by (.+?) (?: having|order by|limit|$)', re.DOTALL)
-    having_pattern = re.compile(r'having (.+?) (?: order by|limit|$)', re.DOTALL)
-    order_by_pattern = re.compile(r'order by (.+?) (?: limit|$)', re.DOTALL)
-    limit_pattern = re.compile(r'limit (.+?) $', re.DOTALL)
-
-    print("CHECK 1: {}".format(from_pattern))
-    print("CHECK 1: {}".format(where_pattern))
-
+    from_pattern = re.compile(r'from (.+?) (?:where|group by|having|order by|limit|$)', re.DOTALL)
+    where_pattern = re.compile(r'where (.+?) (?:group by|having|order by|limit|$)', re.DOTALL)
+    group_by_pattern = re.compile(r'group by (.+?) (?:having|order by|limit|$)', re.DOTALL)
+    having_pattern = re.compile(r'having (.+?) (?:order by|limit|$)', re.DOTALL)
+    order_by_pattern = re.compile(r'order by (.+?) (?:limit|$)', re.DOTALL)
+    limit_pattern = re.compile(r'limit (.+?)$', re.DOTALL)
 
     # Find the matches for each clause
     select_match = select_pattern.search(sql_query)
@@ -206,9 +180,6 @@ def parse_sql_query(input):
     having_match = having_pattern.search(sql_query)
     order_by_match = order_by_pattern.search(sql_query)
     limit_match = limit_pattern.search(sql_query)
-
-    print("CHECK 2: {}".format(from_match))
-    print("CHECK 2: {}".format(where_match))
 
     # Initialise dictionary for the query
     dict = {}
@@ -275,13 +246,101 @@ def parse_sql_query(input):
     return dict 
 
 
+def query_compare(query1, query2):
+
+    query_1_dict = parse_sql_query(query1)
+    query_2_dict = parse_sql_query(query2)
 
 
+    # Just for testing purposes, simpler to seee
+    query_1_dict = {
+        'SELECT': ['column1', 'column2', 'column3'],
+        'FROM': ['table1', 'table2', 'table3'],
+        'WHERE': ['column1 > 10', 'column2 = "example"'],
+        'GROUP BY': ['column1', 'column2'],
+        'ORDER BY': ['column1 DESC', 'column2 ASC']
+    }
+
+    query_2_dict = {
+        'SELECT': ['column1', 'column3'],
+        'FROM': ['table1', 'table3'],
+        'GROUP BY': ['column1', 'column2'],
+        'ORDER BY': ['column1 DESC', 'column3 ASC'],
+        'LIMIT': ['100']
+    }
+
+
+    print('Final Output:')
+    print('Dictionary for Query 1 is: \n{}'.format(query_1_dict))
+    print("\n")
+    print('Dictionary for Query 2 is: \n{}'.format(query_2_dict))
+    print("\n")
+
+
+    for key in ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT']:
+        # Case 1: key exists in both queries
+        if key in query_1_dict and key in query_2_dict:
+            # Case 1.1: value in key is unchanged
+            if query_1_dict[key] == query_2_dict[key]:
+                print(f"\nPredicates for the {key} clause remained the same")
+            # Case 1.2: value in key has changed
+            else:
+                old_value = query_1_dict[key]
+                new_value = query_2_dict[key]
+                present_in_old_not_new = []
+                present_in_new_not_old = []
+                # Iterate over each element in the old and new values
+                for i, elem in enumerate(old_value):
+                    # Check if the element was present in the new value
+                    if elem not in new_value:
+                        present_in_old_not_new.append(f"{elem}")
+                for i, elem in enumerate(new_value):
+                    # Check if the element was present in the old value
+                    if elem not in old_value:
+                        present_in_new_not_old.append(f"{elem}")
+                
+                changes = []
+                if present_in_old_not_new:
+                    changes.append("Was present in Query 1 but not Query 2: " + ", ".join(present_in_old_not_new))
+                if present_in_new_not_old:
+                    changes.append("Was not present in Query 1 but is now present in Query 2: " + ", ".join(present_in_new_not_old))
+                print(f"\nPredicates for the {key} clause have changed:")
+                if changes:
+                    for change in changes:
+                        print(change)
+
+        # Case 2: keys not present in one of the two
+        else:
+            # Case 2.1: key present in query1 but not query2
+            if key in query_1_dict and key not in query_2_dict:
+                print(f"\nThe {key} clause was present in Query 1 but is now not present in Query 2")
+            # Case 2.2: key present in query2 but not query1
+            if key in query_2_dict and key not in query_1_dict:
+                print(f"\nThe {key} clause was not present in Query 1 but is now present in Query 2")
+        
+        # # Case 2: keys not present in one of the two
+        # elif key in query_1_dict and key not in query_2_dict:
+        #     print(f"The {key} clause was present in Query 1 but is now not present in Query 2")
+        # elif key in query_2_dict and key not in query_1_dict:
+        #     print(f"The {key} clause was not present in Query 1 but is now present in Query 2")
+        # # Case 3: key just not in both queries
+        # else:
+        #     pass
+    
+"""
+(1st specific change in qep) because of 1st specific change in query. The predicates for the select clause have changed. Was present in Query 1 but not Query 2: column2.
+
+(2nd specific change in qep) because of 2nd specific change in query. The predicates for the where clause have changed. Was present in Query 1 but not Query 2: column1 > 10, column2 = "example"
+Was not present in Query 1 but is now present in Query 2: column1 > 5. 
+
+biggest problem: what changes in qep are mapped to the changes in query?
+
+"""
 
 if __name__ == "__main__":
 
-    # input1 and input2 should be taken from front-end user input, presumably same input for the qep generation
-    input1 = "select\
+    # query1 and query2 should be taken from front-end user input, presumably same input for the qep generation
+    query1 = "SELECT\
         c_custkey,\
         c_name,\
         sum(l_extendedprice * (1 - l_discount)) as revenue,\
@@ -290,19 +349,19 @@ if __name__ == "__main__":
         c_address,\
         c_phone,\
         c_comment\
-    from\
+    FROM\
         customer,\
         orders,\
         lineitem,\
         nation\
-    where\
+    WHERE\
         c_custkey = o_custkey\
         and l_orderkey = o_orderkey\
         and o_orderdate >= date ':1'\
         and o_orderdate < date ':1' + interval '3' month\
         and l_returnflag = 'R'\
         and c_nationkey = n_nationkey\
-    group by\
+    GROUP BY\
         c_custkey,\
         c_name,\
         c_acctbal,\
@@ -310,47 +369,35 @@ if __name__ == "__main__":
         n_name,\
         c_address,\
         c_comment\
-    order by\
+    ORDER BY\
         revenue desc;\
     "
 
-    input2 = "select\
-        s_name,\
-        s_address\
-    from\
-        supplier,\
+    # Changed select, where, group by
+    # Need to test diff number of clauses too
+    query2 = "SELECT\
+        n_name,\
+        c_address,\
+        c_phone,\
+        c_comment\
+    FROM\
+        customer,\
+        orders,\
+        lineitem,\
         nation\
-    where\
-        s_suppkey in (\
-            select\
-                ps_suppkey\
-            from\
-                partsupp\
-            where\
-                blah1 = blah2 \
-        )\
-        and s_nationkey = n_nationkey\
-        and n_name = ':3'\
-    group by\
-        s_name\
-    order by\
-        lastoneee;\
+    WHERE\
+        and l_returnflag = 'R'\
+        and c_nationkey = n_nationkey\
+    GROUP BY\
+        n_name,\
+        c_address,\
+        c_comment\
+    ORDER BY\
+        revenue desc;\
     "
     
-    # Creation of dictionary for each query
-    query_1_dict = parse_sql_query(input1)
-    query_2_dict = parse_sql_query(input2)
 
-    print('Final Output:')
-    print('Dictionary for Query 1 is: \n{}'.format(query_1_dict))
-    print("\n")
-    print('Dictionary for Query 2 is: \n{}'.format(query_2_dict))
-
-    
-
-
-
-
+    query_compare(query1, query2)
 
 
 
